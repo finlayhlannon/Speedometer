@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live GPS Speed Calculator</title>
+    <title>GPS Pace Calculator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,77 +13,107 @@
             height: 100vh;
             margin: 0;
             background-color: #f4f4f4;
+            flex-direction: column;
         }
         .container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
-        h2 {
-            margin-top: 20px;
+        h1 {
+            font-size: 80px;
+            margin: 0;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Live GPS Speed</h1>
-        <h2 id="speedDisplay">Speed: N/A</h2>
-        <p id="status">Getting location...</p>
+        <h1 id="paceDisplay">99:99 min/km</h1>
+        <!-- Audio elements for the good and bad mp3s -->
+        <audio id="badAudio" loop>
+            <source src="bad.mp3" type="audio/mp3">
+            Your browser does not support the audio tag.
+        </audio>
+        <audio id="goodAudio" loop>
+            <source src="good.mp3" type="audio/mp3">
+            Your browser does not support the audio tag.
+        </audio>
     </div>
 
     <script>
+        let watchID;
+        let speedHistory = []; // Store recent speed readings for smoothing
+        const maxHistoryLength = 5; // Number of speed readings to average
+
+        const badAudio = document.getElementById("badAudio");
+        const goodAudio = document.getElementById("goodAudio");
+
         // Automatically start tracking when the page loads
         window.onload = function() {
             startTracking();
         };
 
-        let watchID;
-
         function startTracking() {
             if ('geolocation' in navigator) {
-                watchID = navigator.geolocation.watchPosition(calculateSpeed, handleError, {
-                    enableHighAccuracy: true, // Use high accuracy mode
+                watchID = navigator.geolocation.watchPosition(calculatePace, handleError, {
+                    enableHighAccuracy: true, // Request best possible accuracy
                     maximumAge: 1000,         // Maximum age of the cached position in ms
                     timeout: 10000            // Timeout in ms before error callback
                 });
-            } else {
-                document.getElementById('status').innerHTML = "Geolocation is not supported by your browser.";
             }
         }
 
-        function calculateSpeed(position) {
+        function calculatePace(position) {
             const speedMps = position.coords.speed;
 
-            if (speedMps !== null) {
+            if (speedMps !== null && speedMps > 0) {
                 const speedKmh = speedMps * 3.6; // Convert m/s to km/h
-                document.getElementById('speedDisplay').innerHTML = "Speed: " + speedKmh.toFixed(2) + " km/h";
-                document.getElementById('status').innerHTML = "Tracking...";
+                
+                // Add current speed to history
+                speedHistory.push(speedKmh);
+                if (speedHistory.length > maxHistoryLength) {
+                    speedHistory.shift(); // Keep only the last 'maxHistoryLength' values
+                }
+                
+                // Calculate average speed for smoother display
+                const averageSpeed = speedHistory.reduce((a, b) => a + b, 0) / speedHistory.length;
+                
+                // Convert km/h to minutes per kilometer
+                const minutesPerKm = 60 / averageSpeed;
+                const minutes = Math.floor(minutesPerKm);
+                const seconds = Math.floor((minutesPerKm - minutes) * 60);
+
+                // Display the pace in minutes and seconds
+                document.getElementById('paceDisplay').innerHTML = `${minutes}:${seconds < 10 ? '0' : ''}${seconds} min/km`;
+
+                // Determine which audio to play based on pace
+                if (minutesPerKm > 4) {
+                    playAudio("bad");
+                } else {
+                    playAudio("good");
+                }
             } else {
-                document.getElementById('speedDisplay').innerHTML = "Speed: Unable to calculate";
-                document.getElementById('status').innerHTML = "Waiting for speed data...";
+                document.getElementById('paceDisplay').innerHTML = "0:00 min/km";
+                playAudio("good"); // Default to good if not moving
+            }
+        }
+
+        function playAudio(type) {
+            if (type === "bad") {
+                if (badAudio.paused) {
+                    badAudio.play();
+                }
+                goodAudio.pause();
+            } else {
+                if (goodAudio.paused) {
+                    goodAudio.play();
+                }
+                badAudio.pause();
             }
         }
 
         function handleError(error) {
-            let errorMessage = "";
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    errorMessage = "User denied the request for Geolocation.";
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    errorMessage = "Location information is unavailable.";
-                    break;
-                case error.TIMEOUT:
-                    errorMessage = "The request to get user location timed out.";
-                    break;
-                case error.UNKNOWN_ERROR:
-                    errorMessage = "An unknown error occurred.";
-                    break;
-            }
-            document.getElementById('status').innerHTML = errorMessage;
+            document.getElementById('paceDisplay').innerHTML = "0:00 min/km"; // Show 0 if there is an error
+            playAudio("good"); // Default to good if there is an error
         }
     </script>
 
