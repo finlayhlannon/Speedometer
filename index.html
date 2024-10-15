@@ -27,10 +27,14 @@
 <body>
 
     <div class="container">
-        <h1 id="paceDisplay">99:99 min/km</h1>
-        <!-- Audio elements for the good and bad mp3s -->
-        <audio id="badAudio" loop>
-            <source src="bad.mp3" type="audio/mp3">
+        <h1 id="paceDisplay">0:00 min/km</h1>
+        <!-- Audio elements for the mp3s -->
+        <audio id="fasterAudio" loop>
+            <source src="faster.mp3" type="audio/mp3">
+            Your browser does not support the audio tag.
+        </audio>
+        <audio id="slowerAudio" loop>
+            <source src="slower.mp3" type="audio/mp3">
             Your browser does not support the audio tag.
         </audio>
         <audio id="goodAudio" loop>
@@ -44,7 +48,8 @@
         let speedHistory = []; // Store recent speed readings for smoothing
         const maxHistoryLength = 5; // Number of speed readings to average
 
-        const badAudio = document.getElementById("badAudio");
+        const fasterAudio = document.getElementById("fasterAudio");
+        const slowerAudio = document.getElementById("slowerAudio");
         const goodAudio = document.getElementById("goodAudio");
 
         // Automatically start tracking when the page loads
@@ -86,8 +91,10 @@
                 document.getElementById('paceDisplay').innerHTML = `${minutes}:${seconds < 10 ? '0' : ''}${seconds} min/km`;
 
                 // Determine which audio to play based on pace
-                if (minutesPerKm > 4) {
-                    playAudio("bad");
+                if (minutesPerKm > 4.5) {
+                    playAudio("faster");
+                } else if (minutesPerKm < 4) {
+                    playAudio("slower");
                 } else {
                     playAudio("good");
                 }
@@ -98,16 +105,24 @@
         }
 
         function playAudio(type) {
-            if (type === "bad") {
-                if (badAudio.paused) {
-                    badAudio.play();
+            if (type === "faster") {
+                if (fasterAudio.paused) {
+                    fasterAudio.play();
                 }
+                slowerAudio.pause();
+                goodAudio.pause();
+            } else if (type === "slower") {
+                if (slowerAudio.paused) {
+                    slowerAudio.play();
+                }
+                fasterAudio.pause();
                 goodAudio.pause();
             } else {
                 if (goodAudio.paused) {
                     goodAudio.play();
                 }
-                badAudio.pause();
+                fasterAudio.pause();
+                slowerAudio.pause();
             }
         }
 
