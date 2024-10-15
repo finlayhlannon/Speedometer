@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live GPS Speed Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h2 {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Live GPS Speed</h1>
+        <h2 id="speedDisplay">Speed: N/A</h2>
+        <p id="status">Getting location...</p>
+    </div>
+
+    <script>
+        // Automatically start tracking when the page loads
+        window.onload = function() {
+            startTracking();
+        };
+
+        let watchID;
+
+        function startTracking() {
+            if ('geolocation' in navigator) {
+                watchID = navigator.geolocation.watchPosition(calculateSpeed, handleError, {
+                    enableHighAccuracy: true, // Use high accuracy mode
+                    maximumAge: 1000,         // Maximum age of the cached position in ms
+                    timeout: 10000            // Timeout in ms before error callback
+                });
+            } else {
+                document.getElementById('status').innerHTML = "Geolocation is not supported by your browser.";
+            }
+        }
+
+        function calculateSpeed(position) {
+            const speedMps = position.coords.speed;
+
+            if (speedMps !== null) {
+                const speedKmh = speedMps * 3.6; // Convert m/s to km/h
+                document.getElementById('speedDisplay').innerHTML = "Speed: " + speedKmh.toFixed(2) + " km/h";
+                document.getElementById('status').innerHTML = "Tracking...";
+            } else {
+                document.getElementById('speedDisplay').innerHTML = "Speed: Unable to calculate";
+                document.getElementById('status').innerHTML = "Waiting for speed data...";
+            }
+        }
+
+        function handleError(error) {
+            let errorMessage = "";
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = "User denied the request for Geolocation.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = "Location information is unavailable.";
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = "The request to get user location timed out.";
+                    break;
+                case error.UNKNOWN_ERROR:
+                    errorMessage = "An unknown error occurred.";
+                    break;
+            }
+            document.getElementById('status').innerHTML = errorMessage;
+        }
+    </script>
+
+</body>
+</html>
