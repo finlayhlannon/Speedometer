@@ -22,12 +22,50 @@
             font-size: 80px;
             margin: 0;
         }
+        input {
+            margin: 10px;
+            padding: 10px;
+            font-size: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 20px;
+            margin-top: 10px;
+        }
+        #paceSettings {
+            display: none; /* Initially hidden */
+            margin-top: 20px;
+        }
+        #togglePaceButton {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            font-size: 20px;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1 id="paceDisplay">0:00 min/km</h1>
+
+        <!-- Toggle button for pace settings -->
+        <button id="togglePaceButton" onclick="togglePaceSettings()">Pace</button>
+
+        <!-- Pace settings input fields -->
+        <div id="paceSettings">
+            <div>
+                <label for="minPace">Min Pace (min/km):</label>
+                <input type="text" id="minPace" value="5:30">
+            </div>
+            <div>
+                <label for="maxPace">Max Pace (min/km):</label>
+                <input type="text" id="maxPace" value="5:00">
+            </div>
+            <button onclick="updatePaceRange()">Set Pace Range</button>
+        </div>
+
         <!-- Audio elements for the mp3s -->
         <audio id="fasterAudio" loop>
             <source src="faster.mp3" type="audio/mp3">
@@ -52,10 +90,33 @@
         const slowerAudio = document.getElementById("slowerAudio");
         const goodAudio = document.getElementById("goodAudio");
 
+        let minPace = 5.5; // Default min pace in minutes/km (5:30)
+        let maxPace = 5.0; // Default max pace in minutes/km (5:00)
+
         // Automatically start tracking when the page loads
         window.onload = function() {
             startTracking();
         };
+
+        // Function to update pace range based on user input
+        function updatePaceRange() {
+            const minPaceInput = document.getElementById("minPace").value;
+            const maxPaceInput = document.getElementById("maxPace").value;
+
+            // Convert min/max pace inputs (e.g., "5:30") to float values (e.g., 5.5)
+            minPace = parseTimeToFloat(minPaceInput);
+            maxPace = parseTimeToFloat(maxPaceInput);
+
+            alert(`Pace range set to: ${minPaceInput} min/km (min) and ${maxPaceInput} min/km (max)`);
+        }
+
+        // Convert "min:sec" string format to float (minutes)
+        function parseTimeToFloat(timeStr) {
+            const parts = timeStr.split(":");
+            const minutes = parseInt(parts[0]);
+            const seconds = parseInt(parts[1]) / 60;
+            return minutes + seconds;
+        }
 
         function startTracking() {
             if ('geolocation' in navigator) {
@@ -90,10 +151,10 @@
                 // Display the pace in minutes and seconds
                 document.getElementById('paceDisplay').innerHTML = `${minutes}:${seconds < 10 ? '0' : ''}${seconds} min/km`;
 
-                // Determine which audio to play based on pace
-                if (minutesPerKm > 4.5) {
+                // Determine which audio to play based on the custom pace range
+                if (minutesPerKm > minPace) {
                     playAudio("faster");
-                } else if (minutesPerKm < 4) {
+                } else if (minutesPerKm < maxPace) {
                     playAudio("slower");
                 } else {
                     playAudio("good");
@@ -129,6 +190,16 @@
         function handleError(error) {
             document.getElementById('paceDisplay').innerHTML = "0:00 min/km"; // Show 0 if there is an error
             playAudio("good"); // Default to good if there is an error
+        }
+
+        // Toggle visibility of pace settings
+        function togglePaceSettings() {
+            const paceSettings = document.getElementById("paceSettings");
+            if (paceSettings.style.display === "none" || paceSettings.style.display === "") {
+                paceSettings.style.display = "block"; // Show settings
+            } else {
+                paceSettings.style.display = "none"; // Hide settings
+            }
         }
     </script>
 
